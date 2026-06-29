@@ -6,17 +6,18 @@ import { PageContainer } from '@/components/layout/page-container';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Modal } from '@/components/ui/modal';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useProfileStore } from '@/stores/profile-store';
 
 const MODALITY_LABELS: Record<string, string> = {
   crossfit: 'CrossFit',
   hyrox: 'Hyrox',
-  swimming: 'Natação',
-  weightlifting: 'Musculação',
+  swimming: 'Natacao',
+  weightlifting: 'Musculacao',
 };
 
-const DAY_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+const DAY_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'];
 
 interface SessionData {
   id: number;
@@ -33,20 +34,40 @@ export default function TreinoPage() {
   const { activeProfile } = useProfileStore();
   const [sessions, setSessions] = useState<SessionData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showReset, setShowReset] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!activeProfile) { router.replace('/selecionar'); return; }
+    fetchSessions();
+  }, [activeProfile]);
 
+  async function fetchSessions() {
     const today = new Date();
     const monday = new Date(today);
     monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
     const weekOf = monday.toISOString().split('T')[0];
 
-    fetch(`/api/training/sessions?profileId=${activeProfile.id}&weekOf=${weekOf}`)
-      .then(r => r.json())
-      .then(res => setSessions(res.data ?? []))
-      .finally(() => setLoading(false));
-  }, [activeProfile]);
+    const res = await fetch(`/api/training/sessions?profileId=${activeProfile!.id}&weekOf=${weekOf}`);
+    const json = await res.json();
+    setSessions(json.data ?? []);
+    setLoading(false);
+  }
+
+  async function handleResetWeek() {
+    setDeleting(true);
+    const planned = sessions.filter(s => s.status === 'planned');
+    for (const s of planned) {
+      await fetch(`/api/training/sessions/${s.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'cancelled' }),
+      });
+    }
+    setShowReset(false);
+    setDeleting(false);
+    await fetchSessions();
+  }
 
   if (!activeProfile) return null;
 
@@ -61,6 +82,7 @@ export default function TreinoPage() {
   });
 
   const todayStr = today.toISOString().split('T')[0];
+  const plannedCount = sessions.filter(s => s.status === 'planned').length;
 
   if (loading) {
     return (
@@ -78,7 +100,12 @@ export default function TreinoPage() {
     <PageContainer>
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-bold">Treino</h1>
-        <Button size="sm" onClick={() => router.push('/treino/gerar')}>Novo treino</Button>
+        <div className="flex items-center gap-2">
+          {plannedCount > 0 && (
+            <button onClick={() => setShowReset(true)} className="text-sm text-[#FF3B30] font-medium">Resetar</button>
+          )}
+          <Button size="sm" onClick={() => router.push('/treino/gerar')}>Novo treino</Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-7 gap-1 mb-6">
@@ -110,16 +137,13 @@ export default function TreinoPage() {
       {sessions.length === 0 ? (
         <Card className="text-center py-8">
           <p className="text-[var(--color-text-secondary)] mb-3">Nenhum treino esta semana</p>
-          <button
-            onClick={() => router.push('/treino/gerar')}
-            className="text-[var(--color-action)] font-medium"
-          >
+          <button onClick={() => router.push('/treino/gerar')} className="text-[var(--color-action)] font-medium">
             Gerar treino
           </button>
         </Card>
       ) : (
         <div className="space-y-3">
-          {sessions.map(s => {
+          {sessions.filter(s => s.status !== 'cancelled').map(s => {
             const sessionDate = new Date(s.date + 'T12:00:00');
             const dayLabel = DAY_LABELS[(sessionDate.getDay() + 6) % 7];
             return (
@@ -133,7 +157,7 @@ export default function TreinoPage() {
                     <p className="text-sm text-[var(--color-text-secondary)] capitalize mt-0.5">{s.focus}</p>
                   </div>
                   <Badge color={s.status === 'completed' ? '#34C759' : s.status === 'in_progress' ? '#FF9500' : '#007AFF'}>
-                    {s.status === 'completed' ? 'Concluído' : s.status === 'in_progress' ? 'Em andamento' : 'Planejado'}
+                    {s.status === 'completed' ? 'Concluido' : s.status === 'in_progress' ? 'Em andamento' : 'Planejado'}
                   </Badge>
                 </div>
                 <div className="flex gap-1.5 mt-2 flex-wrap">
@@ -146,6 +170,18 @@ export default function TreinoPage() {
           })}
         </div>
       )}
+
+      <Modal open={showReset} onClose={() => setShowReset(false)} title="Resetar treinos">
+        <p className="text-[var(--color-text-secondary)] mb-4">
+          Isso vai cancelar {plannedCount} treino(s) planejado(s) desta semana. Treinos ja concluidos ou em andamento nao serao afetados.
+        </p>
+        <div className="flex gap-3">
+          <Button variant="secondary" className="flex-1" onClick={() => setShowReset(false)}>Cancelar</Button>
+          <Button className="flex-1 !bg-[#FF3B30]" onClick={handleResetWeek} disabled={deleting}>
+            {deleting ? 'Resetando...' : 'Resetar'}
+          </Button>
+        </div>
+      </Modal>
     </PageContainer>
   );
 }

@@ -251,3 +251,46 @@ export const shoppingListCache = pgTable('shopping_list_cache', {
   storeSection: varchar('store_section', { length: 50 }).notNull(),
   checked: boolean('checked').default(false),
 });
+
+// ─── Daily Nutrition Logs ───────────────────────────────────────────────────
+
+export const dailyNutritionLogs = pgTable(
+  'daily_nutrition_logs',
+  {
+    id: serial('id').primaryKey(),
+    profileId: uuid('profile_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    date: date('date').notNull(),
+    mealSlot: varchar('meal_slot', { length: 30 }).notNull(),
+    checked: boolean('checked').default(false),
+    proteinG: numeric('protein_g', { precision: 5, scale: 1 }),
+    carbG: numeric('carb_g', { precision: 5, scale: 1 }),
+    fatG: numeric('fat_g', { precision: 5, scale: 1 }),
+    fiberG: numeric('fiber_g', { precision: 5, scale: 1 }),
+    calories: numeric('calories', { precision: 6, scale: 1 }),
+    notes: text('notes'),
+    createdAt: timestamp('created_at').defaultNow(),
+  },
+  (table) => [
+    unique('daily_nutrition_unique').on(table.profileId, table.date, table.mealSlot),
+  ],
+);
+
+// ─── Hydration Logs ─────────────────────────────────────────────────────────
+
+export const hydrationLogs = pgTable(
+  'hydration_logs',
+  {
+    id: serial('id').primaryKey(),
+    profileId: uuid('profile_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    date: date('date').notNull(),
+    glasses: integer('glasses').default(0),
+    targetGlasses: integer('target_glasses').default(8),
+  },
+  (table) => [
+    unique('hydration_unique').on(table.profileId, table.date),
+  ],
+);

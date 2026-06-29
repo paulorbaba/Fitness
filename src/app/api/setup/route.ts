@@ -166,6 +166,29 @@ const TABLES = [
     store_section VARCHAR(50) NOT NULL,
     checked BOOLEAN DEFAULT FALSE
   )`,
+  `CREATE TABLE IF NOT EXISTS daily_nutrition_logs (
+    id SERIAL PRIMARY KEY,
+    profile_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    date DATE NOT NULL,
+    meal_slot VARCHAR(30) NOT NULL,
+    checked BOOLEAN DEFAULT FALSE,
+    protein_g NUMERIC(5,1),
+    carb_g NUMERIC(5,1),
+    fat_g NUMERIC(5,1),
+    fiber_g NUMERIC(5,1),
+    calories NUMERIC(6,1),
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    CONSTRAINT daily_nutrition_unique UNIQUE(profile_id, date, meal_slot)
+  )`,
+  `CREATE TABLE IF NOT EXISTS hydration_logs (
+    id SERIAL PRIMARY KEY,
+    profile_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    date DATE NOT NULL,
+    glasses INTEGER DEFAULT 0,
+    target_glasses INTEGER DEFAULT 8,
+    CONSTRAINT hydration_unique UNIQUE(profile_id, date)
+  )`,
 ];
 
 export async function POST() {

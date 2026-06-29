@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { sql as vercelSql } from '@vercel/postgres';
 import { db } from '@/db';
 import { sql } from 'drizzle-orm';
 import { seed } from '@/db/seed';
@@ -172,12 +173,12 @@ export async function POST() {
 
   try {
     for (let i = 0; i < TABLES.length; i++) {
-      await db.execute(sql.raw(TABLES[i]));
-      log.push(`Tabela ${i + 1}/${TABLES.length} criada`);
+      await vercelSql.query(TABLES[i]);
+      log.push(`Tabela ${i + 1}/${TABLES.length} OK`);
     }
 
-    const profileCheck = await db.execute(sql`SELECT COUNT(*) as count FROM profiles`);
-    const count = Number((profileCheck.rows[0] as { count: string }).count);
+    const result = await vercelSql`SELECT COUNT(*) as count FROM profiles`;
+    const count = Number(result.rows[0].count);
 
     if (count > 0) {
       return NextResponse.json({ message: 'Tabelas criadas. Banco já possui dados — seed ignorado.', log });

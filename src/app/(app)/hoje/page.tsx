@@ -12,8 +12,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useProfileStore } from '@/stores/profile-store';
 
 const MEAL_SLOTS = [
-  { key: 'breakfast', label: 'Cafe da manhã', icon: '☀️' },
-  { key: 'lunch', label: 'Almoço', icon: '🍽️' },
+  { key: 'breakfast', label: 'Cafe da manha', icon: '☀️' },
+  { key: 'post_workout', label: 'Pos-treino', icon: '💪' },
+  { key: 'lunch', label: 'Almoco', icon: '🍽️' },
   { key: 'snack', label: 'Lanche', icon: '🍎' },
   { key: 'dinner', label: 'Jantar', icon: '🌙' },
 ];
@@ -203,7 +204,7 @@ export default function HojePage() {
 
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-lg font-semibold">Refeicoes</h2>
-        <span className="text-sm text-[var(--color-text-secondary)]">{checkedCount}/4</span>
+        <span className="text-sm text-[var(--color-text-secondary)]">{checkedCount}/{MEAL_SLOTS.length}</span>
       </div>
 
       <div className="space-y-3 mb-6">

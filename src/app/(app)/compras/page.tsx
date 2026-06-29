@@ -43,6 +43,7 @@ export default function ComprasPage() {
   const { activeProfile } = useProfileStore();
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [cycle, setCycle] = useState<CycleRef | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -100,6 +101,12 @@ export default function ComprasPage() {
       text += '\n';
     }
     navigator.clipboard?.writeText(text);
+    showToast('Lista copiada!');
+  }
+
+  function showToast(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2000);
   }
 
   function exportCookList() {
@@ -114,6 +121,7 @@ export default function ComprasPage() {
       text += '\n';
     }
     navigator.clipboard?.writeText(text);
+    showToast('Lista da cozinheira copiada!');
   }
 
   if (!activeProfile) return null;
@@ -192,6 +200,12 @@ export default function ComprasPage() {
           </div>
         </div>
       ))}
+
+      {toast && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] px-4 py-2 rounded-full text-sm font-medium shadow-lg z-50">
+          {toast}
+        </div>
+      )}
     </PageContainer>
   );
 }

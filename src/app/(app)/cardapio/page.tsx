@@ -50,6 +50,7 @@ export default function CardapioPage() {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [showReset, setShowReset] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     if (!activeProfile) { router.replace('/selecionar'); return; }
@@ -107,6 +108,7 @@ export default function CardapioPage() {
     }
     text += `\nTotal: ${dishes.size} pratos diferentes\n`;
     navigator.clipboard?.writeText(text);
+    showToast('Lista de pratos copiada!');
   }
 
   function exportCookList() {
@@ -121,6 +123,12 @@ export default function CardapioPage() {
       text += `  - ${name} (${count} porcoes)\n`;
     }
     navigator.clipboard?.writeText(text);
+    showToast('Lista da cozinheira copiada!');
+  }
+
+  function showToast(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2000);
   }
 
   if (!activeProfile) return null;
@@ -153,13 +161,9 @@ export default function CardapioPage() {
   }
 
   const days = Array.from({ length: 15 }, (_, i) => i + 1);
-  const dayAssignments = selectedDay
-    ? cycle.assignments.filter(a => a.dayNumber === selectedDay)
-    : [];
 
-  if (selectedDay === null) {
-    setSelectedDay(1);
-  }
+  const effectiveDay = selectedDay ?? 1;
+  const dayAssignments = cycle.assignments.filter(a => a.dayNumber === effectiveDay);
 
   return (
     <PageContainer>
@@ -178,7 +182,7 @@ export default function CardapioPage() {
 
       <div className="grid grid-cols-5 gap-2 mb-6">
         {days.map(d => {
-          const isSelected = d === selectedDay;
+          const isSelected = d === effectiveDay;
           const dayMeals = cycle.assignments.filter(a => a.dayNumber === d);
           const isHighCarb = dayMeals.some(a => a.isHighCarbDay);
           return (
@@ -199,7 +203,7 @@ export default function CardapioPage() {
       </div>
 
       <h2 className="text-lg font-semibold mb-3">
-        Dia {selectedDay}
+        Dia {effectiveDay}
         {dayAssignments.some(a => a.isHighCarbDay) && (
           <Badge color="#FFB84D" className="ml-2">High Carb</Badge>
         )}
@@ -265,6 +269,12 @@ export default function CardapioPage() {
           </Button>
         </div>
       </Modal>
+
+      {toast && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] px-4 py-2 rounded-full text-sm font-medium shadow-lg z-50 animate-fade-in">
+          {toast}
+        </div>
+      )}
     </PageContainer>
   );
 }

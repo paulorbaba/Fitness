@@ -37,7 +37,7 @@ interface ProfileDetail {
 
 export default function PerfilPage() {
   const router = useRouter();
-  const { activeProfile, clearProfile } = useProfileStore();
+  const { activeProfile, setActiveProfile, clearProfile } = useProfileStore();
   const [profile, setProfile] = useState<ProfileDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [editModal, setEditModal] = useState(false);
@@ -70,21 +70,37 @@ export default function PerfilPage() {
 
   async function handleSave() {
     if (!activeProfile) return;
+    const weight = parseFloat(formData.weightKg);
+    const protein = parseInt(formData.proteinTargetG);
+    const carb = parseInt(formData.carbTargetG);
+    const carbLow = formData.carbTargetLowG ? parseInt(formData.carbTargetLowG) : null;
+    const fat = parseInt(formData.fatTargetG);
+
     await fetch(`/api/profiles/${activeProfile.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        weightKg: parseFloat(formData.weightKg),
-        proteinTargetG: parseInt(formData.proteinTargetG),
-        carbTargetG: parseInt(formData.carbTargetG),
-        carbTargetLowG: formData.carbTargetLowG ? parseInt(formData.carbTargetLowG) : null,
-        fatTargetG: parseInt(formData.fatTargetG),
+        weight_kg: weight,
+        protein_target_g: protein,
+        carb_target_g: carb,
+        carb_target_low_g: carbLow,
+        fat_target_g: fat,
       }),
     });
     setEditModal(false);
     const res = await fetch(`/api/profiles/${activeProfile.id}`);
     const json = await res.json();
     setProfile(json.data ?? null);
+    if (json.data) {
+      setActiveProfile({
+        ...activeProfile,
+        weight_kg: weight,
+        protein_target_g: protein,
+        carb_target_g: carb,
+        carb_target_low_g: carbLow ?? undefined,
+        fat_target_g: fat,
+      });
+    }
   }
 
   function handleLogout() {

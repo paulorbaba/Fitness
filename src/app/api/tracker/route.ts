@@ -16,9 +16,10 @@ export async function GET(request: Request) {
       WHERE profile_id = ${profileId} AND date = ${date}
       ORDER BY CASE meal_slot
         WHEN 'breakfast' THEN 1
-        WHEN 'lunch' THEN 2
-        WHEN 'snack' THEN 3
-        WHEN 'dinner' THEN 4
+        WHEN 'post_workout' THEN 2
+        WHEN 'lunch' THEN 3
+        WHEN 'snack' THEN 4
+        WHEN 'dinner' THEN 5
       END
     `;
 

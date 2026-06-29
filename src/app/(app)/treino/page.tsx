@@ -102,7 +102,7 @@ export default function TreinoPage() {
         <h1 className="text-xl font-bold">Treino</h1>
         <div className="flex items-center gap-2">
           {plannedCount > 0 && (
-            <button onClick={() => setShowReset(true)} className="text-sm text-[#FF3B30] font-medium">Resetar</button>
+            <button onClick={() => setShowReset(true)} className="text-sm text-[var(--color-error)] font-medium">Resetar</button>
           )}
           <Button size="sm" onClick={() => router.push('/treino/gerar')}>Novo treino</Button>
         </div>
@@ -126,7 +126,7 @@ export default function TreinoPage() {
                 {new Date(dateStr + 'T12:00:00').getDate()}
               </span>
               {hasSession && (
-                <span className={`mt-1 w-1.5 h-1.5 rounded-full ${allCompleted ? 'bg-[#34C759]' : 'bg-[#FF9500]'}`} />
+                <span className={`mt-1 w-1.5 h-1.5 rounded-full ${allCompleted ? 'bg-[var(--color-success)]' : 'bg-[var(--color-warning)]'}`} />
               )}
             </div>
           );
@@ -156,13 +156,13 @@ export default function TreinoPage() {
                     </div>
                     <p className="text-sm text-[var(--color-text-secondary)] capitalize mt-0.5">{s.focus}</p>
                   </div>
-                  <Badge color={s.status === 'completed' ? '#34C759' : s.status === 'in_progress' ? '#FF9500' : '#007AFF'}>
+                  <Badge color={s.status === 'completed' ? 'var(--color-success)' : s.status === 'in_progress' ? 'var(--color-warning)' : 'var(--color-action)'}>
                     {s.status === 'completed' ? 'Concluido' : s.status === 'in_progress' ? 'Em andamento' : 'Planejado'}
                   </Badge>
                 </div>
                 <div className="flex gap-1.5 mt-2 flex-wrap">
                   {s.muscleGroups.map(g => (
-                    <Badge key={g} color="#787880">{g}</Badge>
+                    <Badge key={g} color="var(--color-text-tertiary)">{g}</Badge>
                   ))}
                 </div>
               </Card>
@@ -177,7 +177,7 @@ export default function TreinoPage() {
         </p>
         <div className="flex gap-3">
           <Button variant="secondary" className="flex-1" onClick={() => setShowReset(false)}>Cancelar</Button>
-          <Button className="flex-1 !bg-[#FF3B30]" onClick={handleResetWeek} disabled={deleting}>
+          <Button className="flex-1 !bg-[var(--color-error)]" onClick={handleResetWeek} disabled={deleting}>
             {deleting ? 'Resetando...' : 'Resetar'}
           </Button>
         </div>

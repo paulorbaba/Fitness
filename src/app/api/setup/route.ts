@@ -52,7 +52,11 @@ const TABLES = [
     calories_per_100g NUMERIC(6,1) NOT NULL,
     is_allowed BOOLEAN DEFAULT TRUE,
     allergen_tags TEXT[],
-    unit VARCHAR(20) DEFAULT 'g'
+    unit VARCHAR(20) DEFAULT 'g',
+    default_portion_g INTEGER,
+    default_portion_label VARCHAR(50),
+    is_custom BOOLEAN DEFAULT FALSE,
+    created_by UUID REFERENCES profiles(id)
   )`,
   `CREATE TABLE IF NOT EXISTS dishes (
     id SERIAL PRIMARY KEY,
@@ -181,6 +185,22 @@ const TABLES = [
     created_at TIMESTAMP DEFAULT NOW(),
     CONSTRAINT daily_nutrition_unique UNIQUE(profile_id, date, meal_slot)
   )`,
+  `CREATE TABLE IF NOT EXISTS meal_food_items (
+    id SERIAL PRIMARY KEY,
+    profile_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    date DATE NOT NULL,
+    meal_slot VARCHAR(30) NOT NULL,
+    ingredient_id INTEGER REFERENCES ingredients(id),
+    custom_name VARCHAR(200),
+    quantity NUMERIC(7,1) NOT NULL,
+    unit VARCHAR(10) NOT NULL DEFAULT 'g',
+    protein_g NUMERIC(5,1) NOT NULL,
+    carb_g NUMERIC(5,1) NOT NULL,
+    fat_g NUMERIC(5,1) NOT NULL,
+    fiber_g NUMERIC(5,1) DEFAULT 0,
+    calories NUMERIC(6,1) NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+  )`,
   `CREATE TABLE IF NOT EXISTS hydration_logs (
     id SERIAL PRIMARY KEY,
     profile_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -191,6 +211,13 @@ const TABLES = [
   )`,
 ];
 
+const ALTERS = [
+  `ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS default_portion_g INTEGER`,
+  `ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS default_portion_label VARCHAR(50)`,
+  `ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS is_custom BOOLEAN DEFAULT FALSE`,
+  `ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES profiles(id)`,
+];
+
 export async function POST() {
   const log: string[] = [];
 
@@ -199,6 +226,11 @@ export async function POST() {
       await vercelSql.query(TABLES[i]);
       log.push(`Tabela ${i + 1}/${TABLES.length} OK`);
     }
+
+    for (const alter of ALTERS) {
+      await vercelSql.query(alter);
+    }
+    log.push('ALTER TABLE migrations OK');
 
     const result = await vercelSql`SELECT COUNT(*) as count FROM profiles`;
     const count = Number(result.rows[0].count);

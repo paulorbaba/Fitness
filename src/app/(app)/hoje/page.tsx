@@ -6,15 +6,15 @@ import { PageContainer } from '@/components/layout/page-container';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ProgressRing } from '@/components/ui/progress-ring';
-import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useProfileStore } from '@/stores/profile-store';
+import { FoodSearchSheet } from '@/components/meals/food-search-sheet';
 
 const MEAL_SLOTS = [
-  { key: 'breakfast', label: 'Cafe da manha', icon: '☀️' },
-  { key: 'post_workout', label: 'Pos-treino', icon: '💪' },
-  { key: 'lunch', label: 'Almoco', icon: '🍽️' },
+  { key: 'breakfast', label: 'Café da manhã', icon: '☀️' },
+  { key: 'post_workout', label: 'Pós-treino', icon: '💪' },
+  { key: 'lunch', label: 'Almoço', icon: '🍽️' },
   { key: 'snack', label: 'Lanche', icon: '🍎' },
   { key: 'dinner', label: 'Jantar', icon: '🌙' },
 ];
@@ -27,7 +27,19 @@ interface MealLog {
   fat_g: number | null;
   fiber_g: number | null;
   calories: number | null;
-  notes: string | null;
+}
+
+interface FoodItem {
+  id: number;
+  meal_slot: string;
+  ingredient_name: string | null;
+  custom_name: string | null;
+  quantity: string;
+  unit: string;
+  protein_g: string;
+  carb_g: string;
+  fat_g: string;
+  calories: string;
 }
 
 interface HydrationData {
@@ -54,23 +66,26 @@ export default function HojePage() {
   const router = useRouter();
   const { activeProfile } = useProfileStore();
   const [meals, setMeals] = useState<MealLog[]>([]);
+  const [foodItems, setFoodItems] = useState<FoodItem[]>([]);
   const [hydration, setHydration] = useState<HydrationData>({ glasses: 0, target_glasses: 8 });
   const [sessions, setSessions] = useState<SessionData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editSlot, setEditSlot] = useState<string | null>(null);
-  const [form, setForm] = useState({ proteinG: '', carbG: '', fatG: '', fiberG: '', calories: '', notes: '' });
+  const [activeSlot, setActiveSlot] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const today = new Date().toISOString().split('T')[0];
 
   const fetchData = useCallback(async () => {
     if (!activeProfile) return;
     setLoading(true);
-    const [trackerRes, sessionsRes] = await Promise.all([
+    const [trackerRes, foodsRes, sessionsRes] = await Promise.all([
       fetch(`/api/tracker?profileId=${activeProfile.id}&date=${today}`).then(r => r.json()),
+      fetch(`/api/tracker/foods?profileId=${activeProfile.id}&date=${today}`).then(r => r.json()),
       fetch(`/api/training/sessions?date=${today}&profileId=${activeProfile.id}`).then(r => r.json()),
     ]);
     setMeals(trackerRes.data?.meals ?? []);
     setHydration(trackerRes.data?.hydration ?? { glasses: 0, target_glasses: 8 });
+    setFoodItems(foodsRes.data ?? []);
     setSessions(sessionsRes.data ?? []);
     setLoading(false);
   }, [activeProfile, today]);
@@ -80,68 +95,11 @@ export default function HojePage() {
     fetchData();
   }, [activeProfile, fetchData]);
 
-  async function toggleMeal(slot: string) {
-    const existing = meals.find(m => m.meal_slot === slot);
-    const newChecked = !(existing?.checked ?? false);
-
-    setMeals(prev => {
-      const rest = prev.filter(m => m.meal_slot !== slot);
-      return [...rest, { ...(existing ?? { meal_slot: slot, protein_g: null, carb_g: null, fat_g: null, fiber_g: null, calories: null, notes: null }), checked: newChecked }];
-    });
-
-    await fetch('/api/tracker', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        profileId: activeProfile!.id,
-        date: today,
-        mealSlot: slot,
-        checked: newChecked,
-        proteinG: existing?.protein_g,
-        carbG: existing?.carb_g,
-        fatG: existing?.fat_g,
-        fiberG: existing?.fiber_g,
-        calories: existing?.calories,
-        notes: existing?.notes,
-      }),
-    });
-  }
-
-  function openEdit(slot: string) {
-    const existing = meals.find(m => m.meal_slot === slot);
-    setForm({
-      proteinG: existing?.protein_g ? String(existing.protein_g) : '',
-      carbG: existing?.carb_g ? String(existing.carb_g) : '',
-      fatG: existing?.fat_g ? String(existing.fat_g) : '',
-      fiberG: existing?.fiber_g ? String(existing.fiber_g) : '',
-      calories: existing?.calories ? String(existing.calories) : '',
-      notes: existing?.notes ?? '',
-    });
-    setEditSlot(slot);
-  }
-
-  async function saveMealDetail() {
-    if (!editSlot) return;
-    const existing = meals.find(m => m.meal_slot === editSlot);
-
-    await fetch('/api/tracker', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        profileId: activeProfile!.id,
-        date: today,
-        mealSlot: editSlot,
-        checked: existing?.checked ?? true,
-        proteinG: form.proteinG ? parseFloat(form.proteinG) : null,
-        carbG: form.carbG ? parseFloat(form.carbG) : null,
-        fatG: form.fatG ? parseFloat(form.fatG) : null,
-        fiberG: form.fiberG ? parseFloat(form.fiberG) : null,
-        calories: form.calories ? parseFloat(form.calories) : null,
-        notes: form.notes || null,
-      }),
-    });
-    setEditSlot(null);
+  async function deleteFood(itemId: number) {
+    setDeletingId(itemId);
+    await fetch(`/api/tracker/foods/${itemId}`, { method: 'DELETE' });
     await fetchData();
+    setDeletingId(null);
   }
 
   async function addWater() {
@@ -175,12 +133,11 @@ export default function HojePage() {
       fiber: acc.fiber + Number(m.fiber_g || 0),
       calories: acc.calories + Number(m.calories || 0),
     }),
-    { protein: 0, carbs: 0, fat: 0, fiber: 0, calories: 0 }
+    { protein: 0, carbs: 0, fat: 0, fiber: 0, calories: 0 },
   );
 
   const fatTarget = activeProfile.fat_target_g ?? 80;
   const targetCalories = activeProfile.protein_target_g * 4 + activeProfile.carb_target_g * 4 + fatTarget * 9;
-  const checkedCount = meals.filter(m => m.checked).length;
 
   if (loading) {
     return (
@@ -195,58 +152,107 @@ export default function HojePage() {
 
   return (
     <PageContainer>
-      <div className="flex justify-around mb-6 mt-2">
-        <ProgressRing value={totals.protein} max={activeProfile.protein_target_g} color="#FF6B6B" label="Proteina" />
-        <ProgressRing value={totals.carbs} max={activeProfile.carb_target_g} color="#FFB84D" label="Carbos" />
-        <ProgressRing value={totals.fat} max={fatTarget} color="#4ECDC4" label="Gordura" />
-        <ProgressRing value={totals.calories} max={targetCalories} color="#95E1D3" label="Calorias" unit="kcal" />
+      <div className="flex justify-around mb-4 mt-2">
+        <ProgressRing value={totals.protein} max={activeProfile.protein_target_g} color="var(--color-protein)" label="Proteína" />
+        <ProgressRing value={totals.carbs} max={activeProfile.carb_target_g} color="var(--color-carbs)" label="Carbos" />
+        <ProgressRing value={totals.fat} max={fatTarget} color="var(--color-fat)" label="Gordura" />
+        <ProgressRing value={totals.calories} max={targetCalories} color="var(--color-calories)" label="Calorias" unit="kcal" />
       </div>
 
+      {totals.protein > 0 && (
+        <div className="mb-6 space-y-1.5">
+          {MEAL_SLOTS.map(slot => {
+            const log = meals.find(m => m.meal_slot === slot.key);
+            const mealProtein = Number(log?.protein_g || 0);
+            const pct = activeProfile.protein_target_g > 0 ? (mealProtein / activeProfile.protein_target_g) * 100 : 0;
+            if (mealProtein === 0) return null;
+            return (
+              <div key={slot.key} className="flex items-center gap-2 text-xs">
+                <span className="w-16 text-[var(--color-text-secondary)] truncate">{slot.label.split(' ')[0]}</span>
+                <div className="flex-1 h-2 bg-[var(--color-bg-secondary)] rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: 'var(--color-protein)' }}
+                  />
+                </div>
+                <span className="w-10 text-right text-[var(--color-text-tertiary)]">{Math.round(pct)}%</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-semibold">Refeicoes</h2>
-        <span className="text-sm text-[var(--color-text-secondary)]">{checkedCount}/{MEAL_SLOTS.length}</span>
+        <h2 className="text-lg font-semibold">Refeições</h2>
       </div>
 
       <div className="space-y-3 mb-6">
         {MEAL_SLOTS.map(slot => {
           const log = meals.find(m => m.meal_slot === slot.key);
-          const isChecked = log?.checked ?? false;
-          const hasMacros = log && (log.protein_g || log.carb_g || log.fat_g);
+          const slotItems = foodItems.filter(f => f.meal_slot === slot.key);
+          const hasMacros = log && (Number(log.protein_g || 0) > 0 || Number(log.carb_g || 0) > 0 || Number(log.fat_g || 0) > 0);
           return (
-            <Card key={slot.key} className={isChecked ? 'ring-1 ring-[#34C759]' : ''}>
+            <Card key={slot.key} className={hasMacros ? 'ring-1 ring-[var(--color-success)]/30' : ''}>
               <div className="flex items-center gap-3">
-                <button
-                  onClick={() => toggleMeal(slot.key)}
-                  className={`w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                    isChecked ? 'bg-[#34C759] border-[#34C759]' : 'border-[var(--color-separator)]'
-                  }`}
-                >
-                  {isChecked && <span className="text-white text-xs font-bold">✓</span>}
-                </button>
-                <div className="flex-1" onClick={() => openEdit(slot.key)}>
-                  <div className="flex items-center gap-2">
-                    <span>{slot.icon}</span>
-                    <p className="font-medium">{slot.label}</p>
-                  </div>
+                <span className="text-xl">{slot.icon}</span>
+                <div className="flex-1">
+                  <p className="font-medium">{slot.label}</p>
                   {hasMacros ? (
-                    <p className="text-xs text-[var(--color-text-secondary)] mt-1">
-                      P: {Math.round(Number(log.protein_g || 0))}g · C: {Math.round(Number(log.carb_g || 0))}g · G: {Math.round(Number(log.fat_g || 0))}g
-                      {log.calories ? ` · ${Math.round(Number(log.calories))} kcal` : ''}
+                    <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
+                      <span style={{ color: 'var(--color-protein)' }}>{Math.round(Number(log.protein_g || 0))}P</span>
+                      {' · '}
+                      <span style={{ color: 'var(--color-carbs)' }}>{Math.round(Number(log.carb_g || 0))}C</span>
+                      {' · '}
+                      <span style={{ color: 'var(--color-fat)' }}>{Math.round(Number(log.fat_g || 0))}G</span>
+                      {' · '}
+                      <span>{Math.round(Number(log.calories || 0))} kcal</span>
                     </p>
                   ) : (
-                    <p className="text-xs text-[var(--color-text-tertiary)] mt-1">Toque para registrar macros</p>
-                  )}
-                  {log?.notes && (
-                    <p className="text-xs text-[var(--color-text-secondary)] mt-0.5 italic">{log.notes}</p>
+                    <p className="text-xs text-[var(--color-text-tertiary)] mt-0.5">Toque + para adicionar</p>
                   )}
                 </div>
+                <button
+                  onClick={() => setActiveSlot(slot.key)}
+                  className="w-8 h-8 rounded-full bg-[var(--color-action)] text-white flex items-center justify-center text-sm font-bold flex-shrink-0 active:scale-95 transition-transform"
+                >
+                  +
+                </button>
               </div>
+
+              {slotItems.length > 0 && (
+                <div className="mt-3 space-y-1 border-t border-[var(--color-separator)] pt-2">
+                  {slotItems.map(item => (
+                    <div key={item.id} className="flex items-center justify-between text-sm py-1">
+                      <div className="flex-1 min-w-0">
+                        <span className="truncate block">
+                          {item.ingredient_name || item.custom_name}
+                          <span className="text-[var(--color-text-tertiary)] text-xs ml-1">
+                            {Number(item.quantity)}{item.unit === 'un' ? ' un' : item.unit === 'ml' ? 'mL' : 'g'}
+                          </span>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                        <span className="text-xs text-[var(--color-text-secondary)]">
+                          {Math.round(Number(item.protein_g))}P {Math.round(Number(item.carb_g))}C {Math.round(Number(item.fat_g))}G
+                        </span>
+                        <button
+                          onClick={() => deleteFood(item.id)}
+                          className="text-[var(--color-error)] text-xs font-medium"
+                          disabled={deletingId === item.id}
+                        >
+                          {deletingId === item.id ? '...' : '✕'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </Card>
           );
         })}
       </div>
 
-      <h2 className="text-lg font-semibold mb-3">Hidratacao</h2>
+      <h2 className="text-lg font-semibold mb-3">Hidratação</h2>
       <Card className="mb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -275,7 +281,7 @@ export default function HojePage() {
         </div>
         <div className="mt-3 h-2 bg-[var(--color-bg-secondary)] rounded-full overflow-hidden">
           <div
-            className="h-full bg-[#5AC8FA] rounded-full transition-all"
+            className="h-full bg-[var(--color-action-light)] rounded-full transition-all"
             style={{ width: `${Math.min((hydration.glasses / hydration.target_glasses) * 100, 100)}%` }}
           />
         </div>
@@ -298,8 +304,8 @@ export default function HojePage() {
                   <p className="font-medium">{MODALITY_LABELS[s.modality] ?? s.modality}</p>
                   <p className="text-sm text-[var(--color-text-secondary)] capitalize">{s.focus}</p>
                 </div>
-                <Badge color={s.status === 'completed' ? '#34C759' : s.status === 'in_progress' ? '#FF9500' : '#007AFF'}>
-                  {s.status === 'completed' ? 'Concluido' : s.status === 'in_progress' ? 'Em andamento' : 'Planejado'}
+                <Badge color={s.status === 'completed' ? 'var(--color-success)' : s.status === 'in_progress' ? 'var(--color-warning)' : 'var(--color-action)'}>
+                  {s.status === 'completed' ? 'Concluído' : s.status === 'in_progress' ? 'Em andamento' : 'Planejado'}
                 </Badge>
               </div>
             </Card>
@@ -307,43 +313,14 @@ export default function HojePage() {
         </div>
       )}
 
-      <Modal open={!!editSlot} onClose={() => setEditSlot(null)} title={`Registrar ${MEAL_SLOTS.find(s => s.key === editSlot)?.label ?? ''}`}>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm text-[var(--color-text-secondary)] mb-1 block">Proteina (g)</label>
-              <input type="number" value={form.proteinG} onChange={e => setForm(p => ({ ...p, proteinG: e.target.value }))}
-                className="w-full h-11 px-3 rounded-xl bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)]" placeholder="0" />
-            </div>
-            <div>
-              <label className="text-sm text-[var(--color-text-secondary)] mb-1 block">Carboidrato (g)</label>
-              <input type="number" value={form.carbG} onChange={e => setForm(p => ({ ...p, carbG: e.target.value }))}
-                className="w-full h-11 px-3 rounded-xl bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)]" placeholder="0" />
-            </div>
-            <div>
-              <label className="text-sm text-[var(--color-text-secondary)] mb-1 block">Gordura (g)</label>
-              <input type="number" value={form.fatG} onChange={e => setForm(p => ({ ...p, fatG: e.target.value }))}
-                className="w-full h-11 px-3 rounded-xl bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)]" placeholder="0" />
-            </div>
-            <div>
-              <label className="text-sm text-[var(--color-text-secondary)] mb-1 block">Fibra (g)</label>
-              <input type="number" value={form.fiberG} onChange={e => setForm(p => ({ ...p, fiberG: e.target.value }))}
-                className="w-full h-11 px-3 rounded-xl bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)]" placeholder="0" />
-            </div>
-          </div>
-          <div>
-            <label className="text-sm text-[var(--color-text-secondary)] mb-1 block">Calorias (kcal)</label>
-            <input type="number" value={form.calories} onChange={e => setForm(p => ({ ...p, calories: e.target.value }))}
-              className="w-full h-11 px-3 rounded-xl bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)]" placeholder="0" />
-          </div>
-          <div>
-            <label className="text-sm text-[var(--color-text-secondary)] mb-1 block">Notas</label>
-            <input type="text" value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-              className="w-full h-11 px-3 rounded-xl bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)]" placeholder="O que comeu..." />
-          </div>
-          <Button className="w-full" onClick={saveMealDetail}>Salvar</Button>
-        </div>
-      </Modal>
+      <FoodSearchSheet
+        open={!!activeSlot}
+        onClose={() => setActiveSlot(null)}
+        mealSlot={activeSlot ?? ''}
+        profileId={activeProfile.id}
+        date={today}
+        onSaved={fetchData}
+      />
     </PageContainer>
   );
 }

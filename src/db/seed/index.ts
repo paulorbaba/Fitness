@@ -1,6 +1,7 @@
 import { db } from '@/db';
 import * as schema from '@/db/schema';
 import { ingredientsSeed } from './ingredients';
+import { EXPANDED_INGREDIENTS } from './ingredients-expanded';
 import { exercisesSeed } from './exercises';
 import { dishesSeed } from './dishes';
 import {
@@ -25,6 +26,25 @@ export async function seed() {
       caloriesPer100g: String(ing.calories_per_100g),
       isAllowed: ing.is_allowed,
       allergenTags: ing.allergen_tags,
+    }).onConflictDoNothing();
+  }
+
+  console.log('Seeding expanded ingredients...');
+  for (const ing of EXPANDED_INGREDIENTS) {
+    await db.insert(schema.ingredients).values({
+      name: ing.name,
+      namePt: ing.name_pt,
+      category: ing.category,
+      storeSection: ing.store_section,
+      proteinPer100g: String(ing.protein_per_100g),
+      carbPer100g: String(ing.carb_per_100g),
+      fatPer100g: String(ing.fat_per_100g),
+      fiberPer100g: String(ing.fiber_per_100g),
+      caloriesPer100g: String(ing.calories_per_100g),
+      allergenTags: [...ing.allergen_tags],
+      unit: ing.unit,
+      defaultPortionG: ing.default_portion_g,
+      defaultPortionLabel: ing.default_portion_label,
     }).onConflictDoNothing();
   }
 

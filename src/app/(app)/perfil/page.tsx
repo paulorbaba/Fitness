@@ -147,22 +147,22 @@ export default function PerfilPage() {
         <div className="grid grid-cols-2 gap-3">
           <div className="p-3 rounded-xl bg-[var(--color-bg-secondary)]">
             <p className="text-xs text-[var(--color-text-tertiary)]">Proteína</p>
-            <p className="text-lg font-bold" style={{ color: '#FF6B6B' }}>{profile.proteinTargetG}g</p>
+            <p className="text-lg font-bold" style={{ color: 'var(--color-protein)' }}>{profile.proteinTargetG}g</p>
           </div>
           <div className="p-3 rounded-xl bg-[var(--color-bg-secondary)]">
             <p className="text-xs text-[var(--color-text-tertiary)]">Carboidrato</p>
-            <p className="text-lg font-bold" style={{ color: '#FFB84D' }}>{profile.carbTargetG}g</p>
+            <p className="text-lg font-bold" style={{ color: 'var(--color-carbs)' }}>{profile.carbTargetG}g</p>
             {profile.carbTargetLowG && (
               <p className="text-xs text-[var(--color-text-secondary)]">Low: {profile.carbTargetLowG}g</p>
             )}
           </div>
           <div className="p-3 rounded-xl bg-[var(--color-bg-secondary)]">
             <p className="text-xs text-[var(--color-text-tertiary)]">Gordura</p>
-            <p className="text-lg font-bold" style={{ color: '#4ECDC4' }}>{fatTarget}g</p>
+            <p className="text-lg font-bold" style={{ color: 'var(--color-fat)' }}>{fatTarget}g</p>
           </div>
           <div className="p-3 rounded-xl bg-[var(--color-bg-secondary)]">
             <p className="text-xs text-[var(--color-text-tertiary)]">Calorias</p>
-            <p className="text-lg font-bold" style={{ color: '#95E1D3' }}>{totalCalories} kcal</p>
+            <p className="text-lg font-bold" style={{ color: 'var(--color-calories)' }}>{totalCalories} kcal</p>
           </div>
         </div>
       </Card>
@@ -192,7 +192,7 @@ export default function PerfilPage() {
             {profile.preferences
               .sort((a, b) => a.priority - b.priority)
               .map(p => (
-                <Badge key={p.id} color="#007AFF">
+                <Badge key={p.id} color="var(--color-action)">
                   {MODALITY_LABELS[p.modality] ?? p.modality}
                   {p.daysPerWeek ? ` ${p.daysPerWeek}x` : ''}
                 </Badge>
@@ -206,7 +206,7 @@ export default function PerfilPage() {
           <h2 className="font-semibold mb-3">Restrições alimentares</h2>
           <div className="flex flex-wrap gap-2">
             {profile.restrictions.map(r => (
-              <Badge key={r.id} color={r.restrictionType === 'prohibited' ? '#FF3B30' : '#34C759'}>
+              <Badge key={r.id} color={r.restrictionType === 'prohibited' ? 'var(--color-error)' : 'var(--color-success)'}>
                 {r.item}
               </Badge>
             ))}

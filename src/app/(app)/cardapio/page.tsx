@@ -171,13 +171,13 @@ export default function CardapioPage() {
         <div>
           <h1 className="text-xl font-bold">Cardapio</h1>
           <p className="text-sm text-[var(--color-text-secondary)]">
-            <Badge color={cycle.status === 'active' ? '#34C759' : '#FF9500'} className="mr-1">
+            <Badge color={cycle.status === 'active' ? 'var(--color-success)' : 'var(--color-warning)'} className="mr-1">
               {cycle.status === 'draft' ? 'Rascunho' : 'Ativo'}
             </Badge>
             {cycle.startDate} — {cycle.endDate}
           </p>
         </div>
-        <button onClick={() => setShowReset(true)} className="text-sm text-[#FF3B30] font-medium">Resetar</button>
+        <button onClick={() => setShowReset(true)} className="text-sm text-[var(--color-error)] font-medium">Resetar</button>
       </div>
 
       <div className="grid grid-cols-5 gap-2 mb-6">
@@ -196,7 +196,7 @@ export default function CardapioPage() {
               }`}
             >
               <span>D{d}</span>
-              {isHighCarb && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#FFB84D]" />}
+              {isHighCarb && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[var(--color-carbs)]" />}
             </button>
           );
         })}
@@ -205,7 +205,7 @@ export default function CardapioPage() {
       <h2 className="text-lg font-semibold mb-3">
         Dia {effectiveDay}
         {dayAssignments.some(a => a.isHighCarbDay) && (
-          <Badge color="#FFB84D" className="ml-2">High Carb</Badge>
+          <Badge color="var(--color-carbs)" className="ml-2">High Carb</Badge>
         )}
       </h2>
 
@@ -222,7 +222,7 @@ export default function CardapioPage() {
                   P: {Math.round(Number(meal.proteinG))}g · C: {Math.round(Number(meal.carbG))}g · G: {Math.round(Number(meal.fatG))}g · {Math.round(Number(meal.calories))} kcal
                 </p>
               </div>
-              <Badge color="#007AFF">
+              <Badge color="var(--color-action)">
                 {Math.round(Number(meal.portionMultiplier) * 100)}%
               </Badge>
             </div>
@@ -252,7 +252,7 @@ export default function CardapioPage() {
         </p>
         <div className="flex gap-3">
           <Button variant="secondary" className="flex-1" onClick={() => setShowReset(false)}>Cancelar</Button>
-          <Button className="flex-1 !bg-[#FF3B30]" onClick={handleReset}>Resetar</Button>
+          <Button className="flex-1 !bg-[var(--color-error)]" onClick={handleReset}>Resetar</Button>
         </div>
       </Modal>
 

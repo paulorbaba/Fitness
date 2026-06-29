@@ -160,7 +160,7 @@ export default function ComprasPage() {
 
       <div className="h-1.5 bg-[var(--color-bg-secondary)] rounded-full mb-4 overflow-hidden">
         <div
-          className="h-full bg-[#34C759] rounded-full transition-all"
+          className="h-full bg-[var(--color-success)] rounded-full transition-all"
           style={{ width: items.length > 0 ? `${(checkedCount / items.length) * 100}%` : '0%' }}
         />
       </div>
@@ -185,7 +185,7 @@ export default function ComprasPage() {
                 } bg-[var(--color-bg-tertiary)]`}
               >
                 <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                  item.checked ? 'bg-[#34C759] border-[#34C759]' : 'border-[var(--color-separator)]'
+                  item.checked ? 'bg-[var(--color-success)] border-[var(--color-success)]' : 'border-[var(--color-separator)]'
                 }`}>
                   {item.checked && <span className="text-white text-xs">✓</span>}
                 </span>

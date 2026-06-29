@@ -10,10 +10,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Modal } from '@/components/ui/modal';
 
 const BLOCK_LABELS: Record<string, { label: string; color: string }> = {
-  warmup: { label: 'Aquecimento', color: '#5AC8FA' },
-  main: { label: 'Principal', color: '#FF3B30' },
-  accessory: { label: 'Acessório', color: '#FF9500' },
-  finisher: { label: 'Finalizador', color: '#AF52DE' },
+  warmup: { label: 'Aquecimento', color: 'var(--color-warmup)' },
+  main: { label: 'Principal', color: 'var(--color-strength)' },
+  accessory: { label: 'Acessório', color: 'var(--color-hypertrophy)' },
+  finisher: { label: 'Finalizador', color: 'var(--color-finisher)' },
 };
 
 const MODALITY_LABELS: Record<string, string> = {
@@ -159,13 +159,13 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
     <PageContainer>
       <div className="flex items-center justify-between mb-1">
         <h1 className="text-xl font-bold">{MODALITY_LABELS[session.modality] ?? session.modality}</h1>
-        <Badge color={session.status === 'completed' ? '#34C759' : session.status === 'in_progress' ? '#FF9500' : '#007AFF'}>
+        <Badge color={session.status === 'completed' ? 'var(--color-success)' : session.status === 'in_progress' ? 'var(--color-warning)' : 'var(--color-action)'}>
           {session.status === 'completed' ? 'Concluído' : session.status === 'in_progress' ? 'Em andamento' : 'Planejado'}
         </Badge>
       </div>
       <p className="text-sm text-[var(--color-text-secondary)] capitalize mb-1">{session.focus}</p>
       <div className="flex gap-1.5 mb-6 flex-wrap">
-        {session.muscleGroups.map(g => <Badge key={g} color="#787880">{g}</Badge>)}
+        {session.muscleGroups.map(g => <Badge key={g} color="var(--color-text-tertiary)">{g}</Badge>)}
       </div>
 
       {session.status === 'planned' && (
@@ -196,9 +196,9 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
                         {ex.restSeconds && ` · ${ex.restSeconds}s desc.`}
                       </p>
                       {ex.intensityTechnique && (
-                        <Badge color="#AF52DE" className="mt-1">{ex.intensityTechnique.replace(/_/g, ' ')}</Badge>
+                        <Badge color="var(--color-finisher)" className="mt-1">{ex.intensityTechnique.replace(/_/g, ' ')}</Badge>
                       )}
-                      {ex.toFailure && <Badge color="#FF3B30" className="mt-1 ml-1">Falha</Badge>}
+                      {ex.toFailure && <Badge color="var(--color-error)" className="mt-1 ml-1">Falha</Badge>}
                     </div>
                     <div className="flex gap-2">
                       {ex.exercise.executionTips && (
@@ -239,7 +239,7 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
                               onClick={() => !log && setLogModal({ exerciseId: ex.id, setNumber: i + 1 })}
                               className={`flex-1 h-8 rounded-lg text-xs font-medium transition-all ${
                                 log
-                                  ? 'bg-[#34C759]20 text-[#34C759]'
+                                  ? 'bg-[var(--color-success)]/20 text-[var(--color-success)]'
                                   : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)]'
                               }`}
                             >
@@ -250,7 +250,7 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
                       </div>
                       <div className="h-1 bg-[var(--color-bg-secondary)] rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-[#34C759] rounded-full transition-all"
+                          className="h-full bg-[var(--color-success)] rounded-full transition-all"
                           style={{ width: `${(loggedSets / totalSets) * 100}%` }}
                         />
                       </div>
@@ -260,7 +260,7 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
                   {session.status === 'completed' && ex.logs.length > 0 && (
                     <div className="mt-3 flex gap-1">
                       {ex.logs.map(log => (
-                        <span key={log.id} className="text-xs px-2 py-1 rounded-lg bg-[#34C759]10 text-[#34C759]">
+                        <span key={log.id} className="text-xs px-2 py-1 rounded-lg bg-[var(--color-success)]/10 text-[var(--color-success)]">
                           {log.actualReps ?? '-'}x{log.actualWeightKg ?? '-'}kg
                         </span>
                       ))}

@@ -75,6 +75,10 @@ export const ingredients = pgTable('ingredients', {
   isAllowed: boolean('is_allowed').default(true),
   allergenTags: text('allergen_tags').array(),
   unit: varchar('unit', { length: 20 }).default('g'),
+  defaultPortionG: integer('default_portion_g'),
+  defaultPortionLabel: varchar('default_portion_label', { length: 50 }),
+  isCustom: boolean('is_custom').default(false),
+  createdBy: uuid('created_by').references(() => profiles.id),
 });
 
 // ─── Dishes ──────────────────────────────────────────────────────────────────
@@ -276,6 +280,27 @@ export const dailyNutritionLogs = pgTable(
     unique('daily_nutrition_unique').on(table.profileId, table.date, table.mealSlot),
   ],
 );
+
+// ─── Meal Food Items ────────────────────────────────────────────────────────
+
+export const mealFoodItems = pgTable('meal_food_items', {
+  id: serial('id').primaryKey(),
+  profileId: uuid('profile_id')
+    .notNull()
+    .references(() => profiles.id, { onDelete: 'cascade' }),
+  date: date('date').notNull(),
+  mealSlot: varchar('meal_slot', { length: 30 }).notNull(),
+  ingredientId: integer('ingredient_id').references(() => ingredients.id),
+  customName: varchar('custom_name', { length: 200 }),
+  quantity: numeric('quantity', { precision: 7, scale: 1 }).notNull(),
+  unit: varchar('unit', { length: 10 }).notNull().default('g'),
+  proteinG: numeric('protein_g', { precision: 5, scale: 1 }).notNull(),
+  carbG: numeric('carb_g', { precision: 5, scale: 1 }).notNull(),
+  fatG: numeric('fat_g', { precision: 5, scale: 1 }).notNull(),
+  fiberG: numeric('fiber_g', { precision: 5, scale: 1 }).default('0'),
+  calories: numeric('calories', { precision: 6, scale: 1 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
 
 // ─── Hydration Logs ─────────────────────────────────────────────────────────
 

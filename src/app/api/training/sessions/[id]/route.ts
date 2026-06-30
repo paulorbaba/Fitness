@@ -40,6 +40,23 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const sessionId = parseInt(id);
     const body = await request.json();
 
+    if (body.deleteLog) {
+      await db.delete(schema.sessionExerciseLogs)
+        .where(eq(schema.sessionExerciseLogs.id, body.deleteLog.logId));
+      return NextResponse.json({ data: { deleted: true } });
+    }
+
+    if (body.updateLog) {
+      const updates: Record<string, unknown> = {};
+      if (body.updateLog.actualReps !== undefined) updates.actualReps = body.updateLog.actualReps;
+      if (body.updateLog.actualWeightKg !== undefined) updates.actualWeightKg = String(body.updateLog.actualWeightKg);
+      if (body.updateLog.rpe !== undefined) updates.rpe = body.updateLog.rpe ? String(body.updateLog.rpe) : null;
+      await db.update(schema.sessionExerciseLogs)
+        .set(updates)
+        .where(eq(schema.sessionExerciseLogs.id, body.updateLog.logId));
+      return NextResponse.json({ data: { updated: true } });
+    }
+
     if (body.log) {
       await db.insert(schema.sessionExerciseLogs).values({
         sessionExerciseId: body.log.session_exercise_id,
@@ -64,5 +81,19 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ data: updated });
   } catch (error) {
     return NextResponse.json({ error: 'Erro ao atualizar sessão' }, { status: 500 });
+  }
+}
+
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    const sessionId = parseInt(id);
+
+    await db.delete(schema.trainingSessions)
+      .where(eq(schema.trainingSessions.id, sessionId));
+
+    return NextResponse.json({ data: { deleted: true } });
+  } catch (error) {
+    return NextResponse.json({ error: 'Erro ao apagar sessão' }, { status: 500 });
   }
 }

@@ -30,14 +30,25 @@ interface QuantityPickerProps {
     calories: number;
   }) => void;
   onCancel: () => void;
+  editMode?: { quantity: number; itemId: number };
+  onUpdate?: (item: {
+    itemId: number;
+    quantity: number;
+    unit: string;
+    proteinG: number;
+    carbG: number;
+    fatG: number;
+    fiberG: number;
+    calories: number;
+  }) => void;
 }
 
-export function QuantityPicker({ ingredient, onAdd, onCancel }: QuantityPickerProps) {
+export function QuantityPicker({ ingredient, onAdd, onCancel, editMode, onUpdate }: QuantityPickerProps) {
   const isUnit = ingredient.unit === 'un';
   const isMl = ingredient.unit === 'ml' || ingredient.unit === 'mL';
   const portionG = ingredient.defaultPortionG || 100;
 
-  const [count, setCount] = useState(isUnit ? 1 : portionG);
+  const [count, setCount] = useState(editMode ? editMode.quantity : (isUnit ? 1 : portionG));
   const step = isUnit ? 1 : isMl ? 50 : 10;
 
   const gramsEquiv = isUnit ? count * portionG : count;
@@ -50,17 +61,30 @@ export function QuantityPicker({ ingredient, onAdd, onCancel }: QuantityPickerPr
   const cal = Number(ingredient.caloriesPer100g) * factor;
 
   function handleAdd() {
-    onAdd({
-      ingredientId: ingredient.id,
-      name: ingredient.namePt,
-      quantity: count,
-      unit: ingredient.unit || 'g',
-      proteinG: Math.round(protein * 10) / 10,
-      carbG: Math.round(carb * 10) / 10,
-      fatG: Math.round(fat * 10) / 10,
-      fiberG: Math.round(fiber * 10) / 10,
-      calories: Math.round(cal),
-    });
+    if (editMode && onUpdate) {
+      onUpdate({
+        itemId: editMode.itemId,
+        quantity: count,
+        unit: ingredient.unit || 'g',
+        proteinG: Math.round(protein * 10) / 10,
+        carbG: Math.round(carb * 10) / 10,
+        fatG: Math.round(fat * 10) / 10,
+        fiberG: Math.round(fiber * 10) / 10,
+        calories: Math.round(cal),
+      });
+    } else {
+      onAdd({
+        ingredientId: ingredient.id,
+        name: ingredient.namePt,
+        quantity: count,
+        unit: ingredient.unit || 'g',
+        proteinG: Math.round(protein * 10) / 10,
+        carbG: Math.round(carb * 10) / 10,
+        fatG: Math.round(fat * 10) / 10,
+        fiberG: Math.round(fiber * 10) / 10,
+        calories: Math.round(cal),
+      });
+    }
   }
 
   const displayQuantity = isUnit
@@ -124,7 +148,7 @@ export function QuantityPicker({ ingredient, onAdd, onCancel }: QuantityPickerPr
         </div>
       </div>
 
-      <Button className="w-full" onClick={handleAdd}>Adicionar</Button>
+      <Button className="w-full" onClick={handleAdd}>{editMode ? 'Salvar' : 'Adicionar'}</Button>
     </div>
   );
 }

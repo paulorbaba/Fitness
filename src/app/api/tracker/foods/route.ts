@@ -15,7 +15,8 @@ export async function GET(request: Request) {
     let result;
     if (mealSlot) {
       result = await vercelSql`
-        SELECT mfi.*, i.name_pt as ingredient_name, i.default_portion_g, i.default_portion_label
+        SELECT mfi.*, i.name_pt as ingredient_name, i.default_portion_g, i.default_portion_label,
+               i.protein_per_100g, i.carb_per_100g, i.fat_per_100g, i.fiber_per_100g, i.calories_per_100g, i.unit as ingredient_unit
         FROM meal_food_items mfi
         LEFT JOIN ingredients i ON i.id = mfi.ingredient_id
         WHERE mfi.profile_id = ${profileId} AND mfi.date = ${date} AND mfi.meal_slot = ${mealSlot}
@@ -23,7 +24,8 @@ export async function GET(request: Request) {
       `;
     } else {
       result = await vercelSql`
-        SELECT mfi.*, i.name_pt as ingredient_name, i.default_portion_g, i.default_portion_label
+        SELECT mfi.*, i.name_pt as ingredient_name, i.default_portion_g, i.default_portion_label,
+               i.protein_per_100g, i.carb_per_100g, i.fat_per_100g, i.fiber_per_100g, i.calories_per_100g, i.unit as ingredient_unit
         FROM meal_food_items mfi
         LEFT JOIN ingredients i ON i.id = mfi.ingredient_id
         WHERE mfi.profile_id = ${profileId} AND mfi.date = ${date}

@@ -70,11 +70,13 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
   const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [logModal, setLogModal] = useState<{ exerciseId: number; setNumber: number } | null>(null);
+  const [logModal, setLogModal] = useState<{ exerciseId: number; setNumber: number; editLogId?: number } | null>(null);
   const [logReps, setLogReps] = useState('');
   const [logWeight, setLogWeight] = useState('');
   const [logRpe, setLogRpe] = useState('');
   const [tipsOpen, setTipsOpen] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     fetchSession();
@@ -107,25 +109,60 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
 
   async function logSet() {
     if (!logModal) return;
+    if (logModal.editLogId) {
+      await fetch(`/api/training/sessions/${sessionId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          updateLog: {
+            logId: logModal.editLogId,
+            actualReps: logReps ? parseInt(logReps) : null,
+            actualWeightKg: logWeight ? parseFloat(logWeight) : null,
+            rpe: logRpe ? parseFloat(logRpe) : null,
+          },
+        }),
+      });
+    } else {
+      await fetch(`/api/training/sessions/${sessionId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          log: {
+            session_exercise_id: logModal.exerciseId,
+            set_number: logModal.setNumber,
+            actual_reps: logReps ? parseInt(logReps) : null,
+            actual_weight_kg: logWeight ? parseFloat(logWeight) : null,
+            rpe: logRpe ? parseFloat(logRpe) : null,
+            completed: true,
+          },
+        }),
+      });
+    }
+    setLogModal(null);
+    setLogReps('');
+    setLogWeight('');
+    setLogRpe('');
+    await fetchSession();
+  }
+
+  async function deleteLog() {
+    if (!logModal?.editLogId) return;
     await fetch(`/api/training/sessions/${sessionId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        log: {
-          session_exercise_id: logModal.exerciseId,
-          set_number: logModal.setNumber,
-          actual_reps: logReps ? parseInt(logReps) : null,
-          actual_weight_kg: logWeight ? parseFloat(logWeight) : null,
-          rpe: logRpe ? parseFloat(logRpe) : null,
-          completed: true,
-        },
-      }),
+      body: JSON.stringify({ deleteLog: { logId: logModal.editLogId } }),
     });
     setLogModal(null);
     setLogReps('');
     setLogWeight('');
     setLogRpe('');
     await fetchSession();
+  }
+
+  async function deleteSession() {
+    setDeleting(true);
+    await fetch(`/api/training/sessions/${sessionId}`, { method: 'DELETE' });
+    router.replace('/treino');
   }
 
   if (loading) {
@@ -236,7 +273,16 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
                           return (
                             <button
                               key={i}
-                              onClick={() => !log && setLogModal({ exerciseId: ex.id, setNumber: i + 1 })}
+                              onClick={() => {
+                                if (log) {
+                                  setLogReps(log.actualReps != null ? String(log.actualReps) : '');
+                                  setLogWeight(log.actualWeightKg ?? '');
+                                  setLogRpe(log.rpe ?? '');
+                                  setLogModal({ exerciseId: ex.id, setNumber: i + 1, editLogId: log.id });
+                                } else {
+                                  setLogModal({ exerciseId: ex.id, setNumber: i + 1 });
+                                }
+                              }}
                               className={`flex-1 h-8 rounded-lg text-xs font-medium transition-all ${
                                 log
                                   ? 'bg-[var(--color-success)]/20 text-[var(--color-success)]'
@@ -258,11 +304,20 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
                   )}
 
                   {session.status === 'completed' && ex.logs.length > 0 && (
-                    <div className="mt-3 flex gap-1">
+                    <div className="mt-3 flex gap-1 flex-wrap">
                       {ex.logs.map(log => (
-                        <span key={log.id} className="text-xs px-2 py-1 rounded-lg bg-[var(--color-success)]/10 text-[var(--color-success)]">
+                        <button
+                          key={log.id}
+                          onClick={() => {
+                            setLogReps(log.actualReps != null ? String(log.actualReps) : '');
+                            setLogWeight(log.actualWeightKg ?? '');
+                            setLogRpe(log.rpe ?? '');
+                            setLogModal({ exerciseId: ex.id, setNumber: log.setNumber, editLogId: log.id });
+                          }}
+                          className="text-xs px-2 py-1 rounded-lg bg-[var(--color-success)]/10 text-[var(--color-success)] active:scale-95 transition-transform"
+                        >
                           {log.actualReps ?? '-'}x{log.actualWeightKg ?? '-'}kg
-                        </span>
+                        </button>
                       ))}
                     </div>
                   )}
@@ -277,7 +332,14 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
         <Button className="w-full mt-4" onClick={completeSession}>Finalizar treino</Button>
       )}
 
-      <Modal open={!!logModal} onClose={() => setLogModal(null)} title="Registrar set">
+      <button
+        onClick={() => setConfirmDelete(true)}
+        className="w-full mt-4 mb-4 h-11 rounded-xl text-sm font-medium text-[var(--color-error)] active:scale-[0.97] transition-all"
+      >
+        Apagar sessão
+      </button>
+
+      <Modal open={!!logModal} onClose={() => { setLogModal(null); setLogReps(''); setLogWeight(''); setLogRpe(''); }} title={logModal?.editLogId ? 'Editar set' : 'Registrar set'}>
         <div className="space-y-4">
           <div>
             <label className="text-sm text-[var(--color-text-secondary)] mb-1 block">Repetições</label>
@@ -313,6 +375,32 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
             />
           </div>
           <Button className="w-full" onClick={logSet}>Salvar</Button>
+          {logModal?.editLogId && (
+            <button
+              onClick={deleteLog}
+              className="w-full h-11 rounded-xl text-sm font-medium text-[var(--color-error)] active:scale-[0.97] transition-all"
+            >
+              Apagar set
+            </button>
+          )}
+        </div>
+      </Modal>
+
+      <Modal open={confirmDelete} onClose={() => setConfirmDelete(false)} title="Apagar sessão">
+        <div className="p-4 space-y-4">
+          <p className="text-sm text-[var(--color-text-secondary)]">
+            Tem certeza que deseja apagar esta sessão de treino? Todos os sets registrados serão perdidos.
+          </p>
+          <div className="flex gap-3">
+            <Button variant="secondary" className="flex-1" onClick={() => setConfirmDelete(false)}>Cancelar</Button>
+            <button
+              onClick={deleteSession}
+              disabled={deleting}
+              className="flex-1 h-11 rounded-xl bg-[var(--color-error)] text-white text-sm font-medium active:scale-[0.97] transition-all disabled:opacity-50"
+            >
+              {deleting ? 'Apagando...' : 'Apagar'}
+            </button>
+          </div>
         </div>
       </Modal>
     </PageContainer>

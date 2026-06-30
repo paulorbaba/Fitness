@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useProfileStore } from '@/stores/profile-store';
 import { FoodSearchSheet } from '@/components/meals/food-search-sheet';
+import { Modal } from '@/components/ui/modal';
+import { QuantityPicker } from '@/components/meals/quantity-picker';
 
 const MEAL_SLOTS = [
   { key: 'breakfast', label: 'Café da manhã', icon: '☀️' },
@@ -32,6 +34,7 @@ interface MealLog {
 interface FoodItem {
   id: number;
   meal_slot: string;
+  ingredient_id: number | null;
   ingredient_name: string | null;
   custom_name: string | null;
   quantity: string;
@@ -40,6 +43,14 @@ interface FoodItem {
   carb_g: string;
   fat_g: string;
   calories: string;
+  protein_per_100g: string | null;
+  carb_per_100g: string | null;
+  fat_per_100g: string | null;
+  fiber_per_100g: string | null;
+  calories_per_100g: string | null;
+  ingredient_unit: string | null;
+  default_portion_g: number | null;
+  default_portion_label: string | null;
 }
 
 interface HydrationData {
@@ -72,6 +83,7 @@ export default function HojePage() {
   const [loading, setLoading] = useState(true);
   const [activeSlot, setActiveSlot] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [editingFood, setEditingFood] = useState<FoodItem | null>(null);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -100,6 +112,16 @@ export default function HojePage() {
     await fetch(`/api/tracker/foods/${itemId}`, { method: 'DELETE' });
     await fetchData();
     setDeletingId(null);
+  }
+
+  async function updateFood(update: { itemId: number; quantity: number; unit: string; proteinG: number; carbG: number; fatG: number; fiberG: number; calories: number }) {
+    await fetch(`/api/tracker/foods/${update.itemId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(update),
+    });
+    setEditingFood(null);
+    await fetchData();
   }
 
   async function addWater() {
@@ -223,14 +245,17 @@ export default function HojePage() {
                 <div className="mt-3 space-y-1 border-t border-[var(--color-separator)] pt-2">
                   {slotItems.map(item => (
                     <div key={item.id} className="flex items-center justify-between text-sm py-1">
-                      <div className="flex-1 min-w-0">
+                      <button
+                        className="flex-1 min-w-0 text-left active:opacity-70 transition-opacity"
+                        onClick={() => item.ingredient_id && item.protein_per_100g != null ? setEditingFood(item) : undefined}
+                      >
                         <span className="truncate block">
                           {item.ingredient_name || item.custom_name}
                           <span className="text-[var(--color-text-tertiary)] text-xs ml-1">
                             {Number(item.quantity)}{item.unit === 'un' ? ' un' : item.unit === 'ml' ? 'mL' : 'g'}
                           </span>
                         </span>
-                      </div>
+                      </button>
                       <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                         <span className="text-xs text-[var(--color-text-secondary)]">
                           {Math.round(Number(item.protein_g))}P {Math.round(Number(item.carb_g))}C {Math.round(Number(item.fat_g))}G
@@ -321,6 +346,29 @@ export default function HojePage() {
         date={today}
         onSaved={fetchData}
       />
+
+      {editingFood && editingFood.ingredient_id && (
+        <Modal open={true} onClose={() => setEditingFood(null)} title="Editar alimento">
+          <QuantityPicker
+            ingredient={{
+              id: editingFood.ingredient_id,
+              namePt: editingFood.ingredient_name || editingFood.custom_name || '',
+              proteinPer100g: editingFood.protein_per_100g || '0',
+              carbPer100g: editingFood.carb_per_100g || '0',
+              fatPer100g: editingFood.fat_per_100g || '0',
+              fiberPer100g: editingFood.fiber_per_100g || '0',
+              caloriesPer100g: editingFood.calories_per_100g || '0',
+              unit: editingFood.ingredient_unit || editingFood.unit,
+              defaultPortionG: editingFood.default_portion_g,
+              defaultPortionLabel: editingFood.default_portion_label,
+            }}
+            onAdd={() => {}}
+            onCancel={() => setEditingFood(null)}
+            editMode={{ quantity: Number(editingFood.quantity), itemId: editingFood.id }}
+            onUpdate={updateFood}
+          />
+        </Modal>
+      )}
     </PageContainer>
   );
 }
